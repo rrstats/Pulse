@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PULSE 2.0 - Feedback Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #ffffff;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #2563eb;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 16px rgba(37, 99, 235, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 20px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid #2563eb;
+        }
+        
+        .upload-area {
+            border: 2px dashed #2563eb;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            background: #f8faff;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            background: #f1f5f9;
+            border-color: #1d4ed8;
+        }
+        
+        .upload-area input[type="file"] {
+            display: none;
+        }
+        
+        .upload-button {
+            background: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-button:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+        
+        .date-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .date-limit-selector {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            min-width: 120px;
+        }
+        
+        .date-limit-selector:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        
+        .select-all-btn, .clear-all-btn {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .select-all-btn:hover {
+            background: #4b5563;
+        }
+        
+        .clear-all-btn {
+            background: #ef4444;
+        }
+        
+        .clear-all-btn:hover {
+            background: #dc2626;
+        }
+        
+        .multiselect-container {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f9fafb;
+        }
+        
+        .multiselect-item {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
+        .multiselect-item:hover {
+            border-color: #93c5fd;
+        }
+        
+        .multiselect-item.selected {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        
+        .single-select {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 20px;
+            width: 200px;
+        }
+        
+        .single-select:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: #2563eb;
+            color: white;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        tr:nth-child(even) {
+            background: #f9fafb;
+        }
+        
+        .rating-high {
+            background: #dcfce7;
+            color: #166534;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .rating-low {
+            background: #fecaca;
+            color: #dc2626;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+        
+        .show-more-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .show-more-btn:hover {
+            background: #1d4ed8;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .status-message {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+        
+        .date-info {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>PULSE 2.0</h1>
+        </div>
+        
+        <!-- Upload Section -->
+        <div class="section">
+            <div class="upload-area" onclick="document.getElementById('csvFile').click()">
+                <input type="file" id="csvFile" accept=".csv" />
+                <p style="margin-bottom: 10px; font-weight: 600; color: #374151;">Upload CSV File</p>
+                <button type="button" class="upload-button">Choose File</button>
+                <div id="uploadStatus" class="status-message hidden"></div>
+            </div>
+        </div>
+        
+        <!-- Feedback Summary Section -->
+        <div class="section" id="summarySection" style="display: none;">
+            <h2 class="section-title">Feedback Summary</h2>
+            <div class="date-controls">
+                <label for="dateLimitSelector" style="font-weight: 500;">Show dates:</label>
+                <select id="dateLimitSelector" class="date-limit-selector">
+                    <option value="4">Last 4 dates</option>
+                    <option value="8">Last 8 dates</option>
+                    <option value="12">Last 12 dates</option>
+                    <option value="20">Last 20 dates</option>
+                    <option value="all">All dates</option>
+                </select>
+                <button id="selectAllBtn" class="select-all-btn">Select All</button>
+                <button id="clearAllBtn" class="clear-all-btn">Clear All</button>
+            </div>
+            <div class="date-info" id="dateInfo"></div>
+            <div id="dateSelector" class="multiselect-container"></div>
+            <div class="table-container">
+                <table id="summaryTable">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Critical Comments Section -->
+        <div class="section" id="criticalSection" style="display: none;">
+            <h2 class="section-title">Critical Comments</h2>
+            <div class="table-container">
+                <table id="criticalTable">
+                    <thead>
+                        <tr>
+                            <th>Mentor</th>
+                            <th>Student</th>
+                            <th>Rating</th>
+                            <th>Session Date</th>
+                            <th>Other Text</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Feedback Distribution Section -->
+        <div class="section" id="distributionSection" style="display: none;">
+            <h2 class="section-title">Feedback Distribution</h2>
+            <select id="mentorSelector" class="single-select">
+                <option value="">Select Mentor</option>
+            </select>
+            <div class="chart-container">
+                <canvas id="distributionChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Consistently Low Raters Section -->
+        <div class="section" id="lowRatersSection" style="display: none;">
+            <h2 class="section-title">Consistently Low Raters</h2>
+            <div class="table-container">
+                <table id="lowRatersTable">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <button id="showMoreBtn" class="show-more-btn hidden">Show 5 More</button>
+        </div>
+        
+        <!-- Rating Timeline Section -->
+        <div class="section" id="timelineSection" style="display: none;">
+            <h2 class="section-title">Rating Timeline</h2>
+            <select id="timelineMentorSelector" class="single-select">
+                <option value="">Select Mentor</option>
+            </select>
+            <div class="table-container">
+                <table id="timelineTable">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Previous Critical Comments Section -->
+        <div class="section" id="previousCriticalSection" style="display: none;">
+            <h2 class="section-title">Previous Critical Comments</h2>
+            <div class="table-container">
+                <table id="previousCriticalTable">
+                    <thead>
+                        <tr>
+                            <th>Mentor</th>
+                            <th>Student</th>
+                            <th>Rating</th>
+                            <th>Session Date</th>
+                            <th>Other Text</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <button id="showMorePreviousBtn" class="show-more-btn hidden">Show 5 More</button>
+        </div>
+    </div>
+
+    <script>
+        let rawData = [];
+        let selectedDates = [];
+        let allDates = [];
+        let currentLowRatersDisplay = 5;
+        let lowRatersData = [];
+        let distributionChart = null;
+        let currentPreviousCriticalDisplay = 3;
+        let previousCriticalData = [];
+        
+        // File upload handler
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type === 'text/csv') {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    parseCSV(event.target.result);
+                };
+                reader.readAsText(file);
+                
+                document.getElementById('uploadStatus').textContent = 'Processing file...';
+                document.getElementById('uploadStatus').classList.remove('hidden');
+            }
+        });
+        
+        function parseCSV(csvText) {
+            Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: false,
+                delimitersToGuess: [',', '\t', ';'],
+                complete: function(results) {
+                    // Strip whitespace from headers
+                    const cleanHeaders = results.meta.fields.map(field => field.trim());
+                    
+                    // Clean and process data
+                    rawData = results.data.map(row => {
+                        const cleanRow = {};
+                        cleanHeaders.forEach((header, index) => {
+                            const originalHeader = results.meta.fields[index];
+                            let value = row[originalHeader];
+                            if (value !== undefined && value !== null) {
+                                value = String(value).trim();
+                                if (value === '') value = null;
+                            }
+                            cleanRow[header] = value;
+                        });
+                        
+                        // Convert rating to number
+                        if (cleanRow.rating) {
+                            cleanRow.rating = parseFloat(cleanRow.rating);
+                        }
+                        
+                        return cleanRow;
+                    }).filter(row => row.rating !== null && !isNaN(row.rating));
+                    
+                    document.getElementById('uploadStatus').textContent = `Successfully loaded ${rawData.length} records`;
+                    initializeAnalysis();
+                },
+                error: function(error) {
+                    document.getElementById('uploadStatus').textContent = 'Error parsing CSV: ' + error.message;
+                }
+            });
+        }
+        
+        function initializeAnalysis() {
+            // Get unique dates and sort them (most recent first)
+            allDates = [...new Set(rawData.map(row => row.session_date).filter(date => date))];
+            allDates.sort((a, b) => new Date(b) - new Date(a));
+            
+            // Initialize with default 4 most recent dates
+            selectedDates = [...allDates.slice(0, 4)];
+            
+            setupDateControls();
+            createFeedbackSummary();
+            showAllSections();
+        }
+        
+        function setupDateControls() {
+            // Date limit selector
+            document.getElementById('dateLimitSelector').addEventListener('change', function() {
+                updateDateSelector();
+            });
+            
+            // Select all button
+            document.getElementById('selectAllBtn').addEventListener('click', function() {
+                const availableDates = getAvailableDates();
+                selectedDates = [...availableDates];
+                updateDateSelectorButtons();
+                updateAllSections();
+            });
+            
+            // Clear all button
+            document.getElementById('clearAllBtn').addEventListener('click', function() {
+                selectedDates = [];
+                updateDateSelectorButtons();
+                updateAllSections();
+            });
+            
+            // Initial setup
+            updateDateSelector();
+        }
+        
+        function getAvailableDates() {
+            const limit = document.getElementById('dateLimitSelector').value;
+            if (limit === 'all') {
+                return allDates;
+            } else {
+                return allDates.slice(0, parseInt(limit));
+            }
+        }
+        
+        function updateDateSelector() {
+            const availableDates = getAvailableDates();
+            
+            // Update info text
+            const dateInfo = document.getElementById('dateInfo');
+            dateInfo.textContent = `Showing ${availableDates.length} of ${allDates.length} total dates`;
+            
+            // Update date selector
+            const dateSelector = document.getElementById('dateSelector');
+            dateSelector.innerHTML = '';
+            
+            availableDates.forEach(date => {
+                const button = document.createElement('div');
+                button.className = 'multiselect-item';
+                if (selectedDates.includes(date)) {
+                    button.classList.add('selected');
+                }
+                button.textContent = date;
+                button.onclick = () => toggleDateSelection(button, date);
+                dateSelector.appendChild(button);
+            });
+            
+            // Filter selected dates to only include available ones
+            selectedDates = selectedDates.filter(date => availableDates.includes(date));
+            
+            updateAllSections();
+        }
+        
+        function updateDateSelectorButtons() {
+            const availableDates = getAvailableDates();
+            const dateSelector = document.getElementById('dateSelector');
+            
+            // Update button states
+            Array.from(dateSelector.children).forEach(button => {
+                const date = button.textContent;
+                if (selectedDates.includes(date)) {
+                    button.classList.add('selected');
+                } else {
+                    button.classList.remove('selected');
+                }
+            });
+        }
+        
+        function showAllSections() {
+            document.getElementById('summarySection').style.display = 'block';
+            document.getElementById('criticalSection').style.display = 'block';
+            document.getElementById('previousCriticalSection').style.display = 'block';
+            document.getElementById('distributionSection').style.display = 'block';
+            document.getElementById('lowRatersSection').style.display = 'block';
+            document.getElementById('timelineSection').style.display = 'block';
+        }
+        
+        function createFeedbackSummary() {
+            // Initialize other sections
+            createLowRatersSection();
+            createDistributionSection();
+            createTimelineSection();
+            createPreviousCriticalSection();
+            
+            updateAllSections();
+        }
+        
+        function updateAllSections() {
+            const pivotData = createPivotData();
+            updateSummaryTable(pivotData);
+            updateCriticalComments();
+            updatePreviousCriticalComments();
+            updateDistributionChart();
+        }
+        
+        function toggleDateSelection(button, date) {
+            if (selectedDates.includes(date)) {
+                selectedDates = selectedDates.filter(d => d !== date);
+                button.classList.remove('selected');
+            } else {
+                selectedDates.push(date);
+                button.classList.add('selected');
+            }
+            
+            updateAllSections();
+        }
+        
+        function createPivotData() {
+            const pivotData = {};
+            
+            rawData.forEach(row => {
+                if (!row.mentor || !row.session_date || row.rating === null) return;
+                
+                if (!pivotData[row.mentor]) {
+                    pivotData[row.mentor] = {};
+                }
+                
+                if (!pivotData[row.mentor][row.session_date]) {
+                    pivotData[row.mentor][row.session_date] = {
+                        sum: 0,
+                        count: 0
+                    };
+                }
+                
+                pivotData[row.mentor][row.session_date].sum += row.rating;
+                pivotData[row.mentor][row.session_date].count += 1;
+            });
+            
+            return pivotData;
+        }
+        
+        function updateSummaryTable(pivotData) {
+            const table = document.getElementById('summaryTable');
+            const thead = table.querySelector('thead');
+            const tbody = table.querySelector('tbody');
+            
+            // Sort selected dates chronologically for display
+            const sortedSelectedDates = [...selectedDates].sort((a, b) => new Date(a) - new Date(b));
+            
+            // Create header
+            thead.innerHTML = `
+                <tr>
+                    <th>Mentor</th>
+                    ${sortedSelectedDates.map(date => `<th>${date}</th>`).join('')}
+                    <th>Total Ratings</th>
+                </tr>
+            `;
+            
+            // Create body
+            tbody.innerHTML = '';
+            
+            Object.keys(pivotData).forEach(mentor => {
+                const row = document.createElement('tr');
+                let hasData = false;
+                let totalRatings = 0;
+                
+                let rowHTML = `<td><strong>${mentor}</strong></td>`;
+                
+                sortedSelectedDates.forEach(date => {
+                    if (pivotData[mentor][date]) {
+                        const avg = (pivotData[mentor][date].sum / pivotData[mentor][date].count).toFixed(2);
+                        const ratingClass = parseFloat(avg) < 4.5 ? 'rating-low' : 'rating-high';
+                        rowHTML += `<td><span class="${ratingClass}">${avg}</span></td>`;
+                        totalRatings += pivotData[mentor][date].count;
+                        hasData = true;
+                    } else {
+                        rowHTML += '<td>-</td>';
+                    }
+                });
+                
+                if (hasData) {
+                    rowHTML += `<td><strong>${totalRatings}</strong></td>`;
+                    row.innerHTML = rowHTML;
+                    tbody.appendChild(row);
+                }
+            });
+        }
+        
+        function updateCriticalComments() {
+            const filteredData = rawData.filter(row => 
+                selectedDates.includes(row.session_date) && 
+                row.rating !== null && 
+                row.rating <= 3
+            );
+            
+            filteredData.sort((a, b) => a.rating - b.rating);
+            
+            const tbody = document.getElementById('criticalTable').querySelector('tbody');
+            tbody.innerHTML = '';
+            
+            filteredData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.mentor || '-'}</td>
+                    <td>${row.student || '-'}</td>
+                    <td><span class="rating-low">${row.rating}</span></td>
+                    <td>${row.session_date || '-'}</td>
+                    <td>${row.other_text || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function createPreviousCriticalSection() {
+            // Show more button
+            document.getElementById('showMorePreviousBtn').onclick = () => {
+                currentPreviousCriticalDisplay += 5;
+                updatePreviousCriticalComments();
+            };
+        }
+        
+        function updatePreviousCriticalComments() {
+            // Get all dates that are NOT selected
+            const unselectedDates = allDates.filter(date => !selectedDates.includes(date));
+            
+            // Filter data for unselected dates and rating <= 3
+            previousCriticalData = rawData.filter(row => 
+                unselectedDates.includes(row.session_date) && 
+                row.rating !== null && 
+                row.rating <= 3
+            );
+            
+            // Sort by session_date (most recent first)
+            previousCriticalData.sort((a, b) => new Date(b.session_date) - new Date(a.session_date));
+            
+            const tbody = document.getElementById('previousCriticalTable').querySelector('tbody');
+            tbody.innerHTML = '';
+            
+            const displayData = previousCriticalData.slice(0, currentPreviousCriticalDisplay);
+            
+            displayData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.mentor || '-'}</td>
+                    <td>${row.student || '-'}</td>
+                    <td><span class="rating-low">${row.rating}</span></td>
+                    <td>${row.session_date || '-'}</td>
+                    <td>${row.other_text || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            // Show/hide more button
+            const showMoreBtn = document.getElementById('showMorePreviousBtn');
+            if (currentPreviousCriticalDisplay >= previousCriticalData.length) {
+                showMoreBtn.classList.add('hidden');
+            } else {
+                showMoreBtn.classList.remove('hidden');
+            }
+        }
+
+        function createDistributionSection() {
+            const mentors = [...new Set(rawData.map(row => row.mentor).filter(mentor => mentor))];
+            const selector = document.getElementById('mentorSelector');
+            
+            selector.innerHTML = '<option value="">Select Mentor</option>';
+            mentors.forEach(mentor => {
+                const option = document.createElement('option');
+                option.value = mentor;
+                option.textContent = mentor;
+                selector.appendChild(option);
+            });
+            
+            selector.addEventListener('change', updateDistributionChart);
+        }
+        
+        function updateDistributionChart() {
+            const selectedMentor = document.getElementById('mentorSelector').value;
+            if (!selectedMentor) return;
+            
+            // Filter data for selected dates and mentor
+            const filteredData = rawData.filter(row => 
+                selectedDates.includes(row.session_date) && 
+                row.mentor === selectedMentor &&
+                row.rating !== null
+            );
+            
+            // Count ratings
+            const ratingCounts = {};
+            filteredData.forEach(row => {
+                ratingCounts[row.rating] = (ratingCounts[row.rating] || 0) + 1;
+            });
+            
+            // Prepare chart data
+            const ratings = Object.keys(ratingCounts).sort((a, b) => a - b);
+            const counts = ratings.map(rating => ratingCounts[rating]);
+            
+            // Destroy existing chart
+            if (distributionChart) {
+                distributionChart.destroy();
+            }
+            
+            const ctx = document.getElementById('distributionChart').getContext('2d');
+            distributionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ratings,
+                    datasets: [{
+                        label: 'Number of Ratings',
+                        data: counts,
+                        backgroundColor: '#2563eb',
+                        borderColor: '#1d4ed8',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Rating'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createLowRatersSection() {
+            // Filter data for ratings < 5
+            const lowRatingData = rawData.filter(row => row.rating !== null && row.rating < 5);
+            
+            // Create pivot: student (rows) x rating (columns) with count
+            const pivotData = {};
+            
+            lowRatingData.forEach(row => {
+                if (!pivotData[row.student]) {
+                    pivotData[row.student] = {};
+                }
+                
+                if (!pivotData[row.student][row.rating]) {
+                    pivotData[row.student][row.rating] = 0;
+                }
+                
+                pivotData[row.student][row.rating]++;
+            });
+            
+            // Convert to array for easier handling
+            lowRatersData = Object.keys(pivotData).map(student => ({
+                student: student,
+                ratings: pivotData[student]
+            }));
+            
+            updateLowRatersTable();
+            
+            // Show more button
+            document.getElementById('showMoreBtn').onclick = () => {
+                currentLowRatersDisplay += 5;
+                updateLowRatersTable();
+            };
+        }
+        
+        function updateLowRatersTable() {
+            const table = document.getElementById('lowRatersTable');
+            const thead = table.querySelector('thead');
+            const tbody = table.querySelector('tbody');
+            
+            if (lowRatersData.length === 0) return;
+            
+            // Get all unique ratings
+            const allRatings = [...new Set(rawData.map(row => row.rating).filter(r => r !== null && r < 5))].sort();
+            
+            // Create header
+            thead.innerHTML = `
+                <tr>
+                    <th>Student</th>
+                    ${allRatings.map(rating => `<th>Rating ${rating}</th>`).join('')}
+                </tr>
+            `;
+            
+            // Create body
+            tbody.innerHTML = '';
+            
+            const displayData = lowRatersData.slice(0, currentLowRatersDisplay);
+            
+            displayData.forEach(studentData => {
+                const row = document.createElement('tr');
+                let rowHTML = `<td><strong>${studentData.student || 'Unknown'}</strong></td>`;
+                
+                allRatings.forEach(rating => {
+                    const count = studentData.ratings[rating] || 0;
+                    rowHTML += `<td>${count}</td>`;
+                });
+                
+                row.innerHTML = rowHTML;
+                tbody.appendChild(row);
+            });
+            
+            // Show/hide more button
+            const showMoreBtn = document.getElementById('showMoreBtn');
+            if (currentLowRatersDisplay >= lowRatersData.length) {
+                showMoreBtn.classList.add('hidden');
+            } else {
+                showMoreBtn.classList.remove('hidden');
+            }
+        }
+        
+        function createTimelineSection() {
+            const mentors = [...new Set(rawData.map(row => row.mentor).filter(mentor => mentor))];
+            const selector = document.getElementById('timelineMentorSelector');
+            
+            selector.innerHTML = '<option value="">Select Mentor</option>';
+            mentors.forEach(mentor => {
+                const option = document.createElement('option');
+                option.value = mentor;
+                option.textContent = mentor;
+                selector.appendChild(option);
+            });
+            
+            selector.addEventListener('change', updateTimelineTable);
+        }
+        
+        function updateTimelineTable() {
+            const selectedMentor = document.getElementById('timelineMentorSelector').value;
+            if (!selectedMentor) return;
+            
+            // Create pivot table: mentor (rows) x session_date (columns) with mean rating
+            const mentorData = rawData.filter(row => row.mentor === selectedMentor && row.rating !== null);
+            
+            const dateRatings = {};
+            mentorData.forEach(row => {
+                if (!dateRatings[row.session_date]) {
+                    dateRatings[row.session_date] = {
+                        sum: 0,
+                        count: 0
+                    };
+                }
+                dateRatings[row.session_date].sum += row.rating;
+                dateRatings[row.session_date].count += 1;
+            });
+            
+            // Get dates sorted
+            const dates = Object.keys(dateRatings).sort((a, b) => new Date(a) - new Date(b));
+            
+            const table = document.getElementById('timelineTable');
+            const thead = table.querySelector('thead');
+            const tbody = table.querySelector('tbody');
+            
+            // Create header
+            thead.innerHTML = `
+                <tr>
+                    <th>Mentor</th>
+                    ${dates.map(date => `<th>${date}</th>`).join('')}
+                </tr>
+            `;
+            
+            // Create body
+            tbody.innerHTML = '';
+            
+            const row = document.createElement('tr');
+            let rowHTML = `<td><strong>${selectedMentor}</strong></td>`;
+            
+            dates.forEach(date => {
+                const avg = (dateRatings[date].sum / dateRatings[date].count).toFixed(2);
+                const ratingClass = parseFloat(avg) < 4.5 ? 'rating-low' : 'rating-high';
+                rowHTML += `<td><span class="${ratingClass}">${avg}</span></td>`;
+            });
+            
+            row.innerHTML = rowHTML;
+            tbody.appendChild(row);
+        }
+    </script>
+</body>
+</html>
